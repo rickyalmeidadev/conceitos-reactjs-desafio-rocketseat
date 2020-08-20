@@ -6,22 +6,48 @@ import "./styles.css";
 
 function App() {
   const [repositories, setRepositories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchRepositoriesError, setFetchRepositoriesError] = useState("");
+  const [addRepositoryError, setAddRepositoryError] = useState("");
 
   useEffect(() => {
     (async () => {
-      const response = await api.get("repositories");
-      setRepositories(response.data);
+      try {
+        const response = await api.get("repositories");
+        setRepositories(response.data);
+      } catch (error) {
+        if (error.response) {
+          setFetchRepositoriesError(error.response.data.message);
+        } else {
+          setFetchRepositoriesError("Falha ao obter repositórios.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
     })();
   }, []);
 
   async function handleAddRepository() {
-    const response = await api.post("repositories", {
-      url: "https://github.com/rickyalmeidadev",
-      title: "Desafio ReactJS",
-      techs: ["React", "Node.js"],
-    });
+    try {
+      const response = await api.post("repositories", {
+        url: "https://github.com/rickyalmeidadev",
+        title: "Desafio ReactJS",
+        techs: ["React", "Node.js"],
+      });
 
-    setRepositories([...repositories, response.data]);
+      setRepositories([...repositories, response.data]);
+    } catch (error) {
+      if (error.response) {
+        setAddRepositoryError(error.response.data.message);
+      } else {
+        setAddRepositoryError("Falha ao adicionar repositório.");
+      }
+
+      setTimeout(() => {
+        setAddRepositoryError("")
+      }, 2500);
+    }
+
   }
 
   async function handleRemoveRepository(id) {
@@ -32,10 +58,14 @@ function App() {
   return (
     <div>
       <ul data-testid="repository-list">
-        {repositories.map(repository => (
+        {isLoading ? (
+          <p>Carregando...</p>
+        ) : fetchRepositoriesError ? (
+          <p>{fetchRepositoriesError}</p>
+        ) : repositories.map(repository => (
           <li key={repository.id}>
             {repository.title}
-
+  
             <button onClick={() => handleRemoveRepository(repository.id)}>
               Remover
             </button>
@@ -44,6 +74,7 @@ function App() {
       </ul>
 
       <button onClick={handleAddRepository}>Adicionar</button>
+      {addRepositoryError && <p>{addRepositoryError}</p>}
     </div>
   );
 }
